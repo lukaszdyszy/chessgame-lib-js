@@ -1,0 +1,26 @@
+{
+  "name": "chessgame-lib-js",
+  "version": "0.0.1",
+  "description": "A javascript library for chess logic.",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack"
+  },
+  "keywords": [
+    "chess",
+    "game",
+    "chessgame",
+    "library",
+    "chessgame"
+  ],
+  "author": "lukaszdyszy",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.18.9",
+    "@babel/preset-env": "^7.18.9",
+    "babel-loader": "^8.2.5",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0"
+  }
+}
