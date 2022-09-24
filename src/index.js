@@ -14,36 +14,272 @@ class Chessgame {
 			['R','N','B','Q','K','B','N','R']
 		];
 
+		this.possibleMoves = [];
+
 		this.loadFEN(FEN);
 
 		// current turn, true - white, false - black
-		this.turn = true;
+		// this.turn = true;
 
-		// are castles possible
-		this.castle_k = true;
-		this.castle_q = true;
-		this.castle_K = true;
-		this.castle_Q = true;
+		// // are castles possible
+		// this.castle_k = true;
+		// this.castle_q = true;
+		// this.castle_K = true;
+		// this.castle_Q = true;
 
-		// halfmoves since last taking or pawn's move
-		this.halfmoves = 0;
+		// // halfmoves since last taking or pawn's move
+		// this.halfmoves = 0;
 
-		// move number
-		this.moves = 1;
+		// // move number
+		// this.moves = 1;
 
-		// enpassant field
-		this.enpassant = '-';
+		// // enpassant field
+		// this.enpassant = '-';
 	}
 
 	makeMove(from, to) {
-		from = from.toUpperCase();
-		to = to.toUpperCase();
-		let piece = this.board[8-(+(from[1]))][from.charCodeAt(0)-65];
+		console.log(`${from}-${to}`)
+		console.log(this.getFieldByName(from));
+		// is white or black or empty
+		// from = from.toUpperCase();
+		// to = to.toUpperCase();
+		// let piece = this.board[8-(+(from[1]))][from.charCodeAt(0)-65];
+		// if(piece === '') return false;
 
-		if(piece === '') return false;
+		// check type of piece
+
+		// is move in the list of moves of this kind of piece
+
+		// is promotion
+
+
+
 		
 
-		console.log(piece);
+		// this.calculatePossibleMoves();
+
+		return true;
+	}
+
+	calculatePossibleMoves() {
+		const candidates = [];
+
+		this.board.map((row, rowId) => {
+			row.map((el, colId) => {
+				// if(this.turn != this.isWhite(el)) return;
+				if(el === '') return;
+				
+				let originalPosition = [rowId, colId];
+
+				let dest = [0, 0];
+
+				const addCand = () => {
+					if(this.isOnBoard(dest)) {
+						candidates.push(this.moveToString(
+							el, 
+							this.getNameByCoords(originalPosition),
+							this.getNameByCoords(dest)
+						));
+					}
+				}
+
+				let W = this.isWhite(el);
+
+				const checkMove = (vector) => {
+					dest = this.sumVectors(originalPosition, vector);
+
+					if(!this.isOnBoard(dest)) return false;
+					
+					if(W && this.isWhite(this.getFieldByVector(dest)) || !W && this.isBlack(this.getFieldByVector(dest))) {
+						return false;
+					}
+
+					if(W && this.isBlack(this.getFieldByVector(dest)) || !W && this.isWhite(this.getFieldByVector(dest))) {
+						addCand();
+						return false;
+					}
+
+					addCand();
+					
+					return true;
+				}
+
+				switch (el) {
+					case 'p':
+						// [1, 0] - push pawn
+						dest = this.sumVectors(originalPosition, [1, 0]);
+
+						if(this.isOnBoard(dest) && this.getFieldByVector(dest)==='') {
+							addCand();
+
+							// [2, 0] - first move
+							if(rowId === 1) {
+								dest = this.sumVectors(originalPosition, [2, 0]);
+								if(this.getFieldByVector(dest)==='') addCand();
+							}
+						}
+
+						// [1, 1] - take
+						dest = this.sumVectors(originalPosition, [1, 1]);
+						if(this.isOnBoard(dest) && this.isWhite(this.getFieldByVector(dest))) addCand();
+
+						// [1, -1] - take
+						dest = this.sumVectors(originalPosition, [1, -1]);
+						if(this.isOnBoard(dest) && this.isWhite(this.getFieldByVector(dest))) addCand();
+						
+						break;
+
+					case 'P':
+						// [-1, 0] - push pawn
+						dest = this.sumVectors(originalPosition, [-1, 0]);
+
+						if(this.isOnBoard(dest) && this.getFieldByVector(dest)==='') {
+							addCand();
+
+							// [-2, 0] - first move
+							if(rowId === 6) {
+								dest = this.sumVectors(originalPosition, [-2, 0]);
+								if(this.getFieldByVector(dest)==='') addCand();
+							}
+						}
+
+						// [-1, 1] - take
+						dest = this.sumVectors(originalPosition, [-1, 1]);
+						if(this.isOnBoard(dest) && this.isBlack(this.getFieldByVector(dest))) addCand();
+
+						// [-1, -1] - take
+						dest = this.sumVectors(originalPosition, [-1, -1]);
+						if(this.isOnBoard(dest) && this.isBlack(this.getFieldByVector(dest))) addCand();
+						
+						break;
+				
+					case 'R':
+					case 'r':
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([i, 0])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([-i, 0])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([0, i])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([0, -i])) break;
+						}
+
+						break;
+
+					case 'b':
+					case 'B':
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([i, i])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([i, -i])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([-i, i])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([-i, -i])) break;
+						}
+
+					case 'n':
+					case 'N':
+						checkMove([2, 1]);
+						checkMove([2, -1]);
+						checkMove([-2, 1]);
+						checkMove([-2, -1]);
+						break;
+
+					case 'q':
+					case 'Q':
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([i, 0])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([-i, 0])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([0, i])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([0, -i])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([i, i])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([i, -i])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([-i, i])) break;
+						}
+
+						for (let i = 1; i < 8; i++) {
+							if(!checkMove([-i, -i])) break;
+						}
+
+						break;
+
+					case 'k':
+					case 'K':
+						checkMove([-1, -1]);
+						checkMove([-1, 0]);
+						checkMove([-1, 1]);
+						checkMove([0, -1]);
+						checkMove([0, 1]);
+						checkMove([1, -1]);
+						checkMove([1, 0]);
+						checkMove([1, 1]);
+
+						// castles
+						if(el === 'k') {
+							if(	this.castle_k &&
+								this.getFieldByName('f8') === '' && 
+								this.getFieldByName('g8') === '' 
+								) {
+									const dealbreaks = candidates.map(cand => {
+										if(	cand.split('-')[1] === 'f8' ||
+											cand.split('-')[1] === 'g8'
+										) {
+											return cand;
+										}
+									});
+
+									console.log(dealbreaks);
+							}
+						}
+						break
+					default:
+						break;
+				}
+			});
+		});
+
+		console.log(candidates);
+
+		// make a copy of the board
+		
+		// is check - revert
+
+	}
+
+	isCheck() {
+
 	}
 
 	getFEN() {
@@ -143,6 +379,46 @@ class Chessgame {
 		this.enpassant = enpassant;
 		this.halfmoves = halfmoves;
 		this.moves = moves;
+	}
+
+	isWhite(field) {
+		return (field.charCodeAt(0) >= 65 && field.charCodeAt(0) <= 90);
+	}
+
+	isBlack(field) {
+		return (field.charCodeAt(0) >= 97 && field.charCodeAt(0) <= 122);
+	}
+
+	isOnBoard([y, x]) {
+		return y>=0 && y<8 && x>=0 && x<8;
+	}
+
+	getFieldByName(name) {
+		const [row, col] = this.getCoordsByName(name);
+		return this.board[row][col];
+	}
+
+	getNameByCoords([y, x]) {
+		return `${String.fromCharCode(97+x)}${8-y}`;
+	}
+
+	getCoordsByName(name) {
+		name = name.toLowerCase();
+		return [8-(+name[1]), name.charCodeAt(0) - 97];
+	}
+
+	getFieldByVector(vector) {
+		return this.board[vector[0]][vector[1]];
+	}
+
+	sumVectors(a, b) {
+		return a.map((el, index) => {
+			return el+b[index];
+		});
+	}
+
+	moveToString(piece, from, to) {
+		return `${(piece.toUpperCase() != 'P') ? piece.toUpperCase() : ''}${from}-${to}`;
 	}
 }
 
