@@ -62,7 +62,10 @@ class Chessgame {
 	}
 
 	calculatePossibleMoves() {
-		const candidates = [];
+		const candidates = {
+			white: [],
+			black: []
+		}
 
 		this.board.map((row, rowId) => {
 			row.map((el, colId) => {
@@ -73,17 +76,17 @@ class Chessgame {
 
 				let dest = [0, 0];
 
+				let W = this.isWhite(el);
+
 				const addCand = () => {
 					if(this.isOnBoard(dest)) {
-						candidates.push(this.moveToString(
+						candidates[W ? 'white' : 'black'].push(this.moveToString(
 							el, 
 							this.getNameByCoords(originalPosition),
 							this.getNameByCoords(dest)
 						));
 					}
 				}
-
-				let W = this.isWhite(el);
 
 				const checkMove = (vector) => {
 					dest = this.sumVectors(originalPosition, vector);
@@ -246,29 +249,85 @@ class Chessgame {
 						checkMove([1, 0]);
 						checkMove([1, 1]);
 
-						// castles
-						if(el === 'k') {
-							if(	this.castle_k &&
-								this.getFieldByName('f8') === '' && 
-								this.getFieldByName('g8') === '' 
-								) {
-									const dealbreaks = candidates.map(cand => {
-										if(	cand.split('-')[1] === 'f8' ||
-											cand.split('-')[1] === 'g8'
-										) {
-											return cand;
-										}
-									});
-
-									console.log(dealbreaks);
-							}
-						}
-						break
+						break;
 					default:
 						break;
 				}
 			});
 		});
+
+		// castles
+		if(	this.castle_k &&
+			this.getFieldByName('f8') === '' && 
+			this.getFieldByName('g8') === '' 
+			) {
+				const dealbreaks = candidates['white'].map(cand => {
+					if(	cand.split('-')[1] === 'f8' ||
+						cand.split('-')[1] === 'g8'
+					) {
+						return cand;
+					}
+				}).filter(Boolean);
+
+				if(dealbreaks.length === 0) {
+					candidates.black.push('O-O');
+				}
+		}
+
+		if(	this.castle_q &&
+			this.getFieldByName('b8') === '' && 
+			this.getFieldByName('c8') === '' &&
+			this.getFieldByName('d8') === '' 
+			) {
+				const dealbreaks = candidates.white.map(cand => {
+					if(	cand.split('-')[1] === 'b8' ||
+						cand.split('-')[1] === 'c8' ||
+						cand.split('-')[1] === 'd8' 
+					) {
+						return cand;
+					}
+				}).filter(Boolean);
+
+				if(dealbreaks.length === 0) {
+					candidates.black.push('O-O-O');
+				}
+		}
+
+		if(	this.castle_k &&
+			this.getFieldByName('f1') === '' && 
+			this.getFieldByName('g1') === '' 
+			) {
+				const dealbreaks = candidates.black.map(cand => {
+					if(	cand.split('-')[1] === 'f1' ||
+						cand.split('-')[1] === 'g1'
+					) {
+						return cand;
+					}
+				}).filter(Boolean);
+
+				if(dealbreaks.length === 0) {
+					candidates.white.push('O-O');
+				}
+		}
+
+		if(	this.castle_q &&
+			this.getFieldByName('b1') === '' && 
+			this.getFieldByName('c1') === '' &&
+			this.getFieldByName('d1') === '' 
+			) {
+				const dealbreaks = candidates.black.map(cand => {
+					if(	cand.split('-')[1] === 'b1' ||
+						cand.split('-')[1] === 'c1' ||
+						cand.split('-')[1] === 'd1' 
+					) {
+						return cand;
+					}
+				}).filter(Boolean);
+
+				if(dealbreaks.length === 0) {
+					candidates.white.push('O-O-O');
+				}
+		}
 
 		console.log(candidates);
 
