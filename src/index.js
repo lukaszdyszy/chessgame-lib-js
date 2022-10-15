@@ -1,67 +1,136 @@
 const START_POSITION = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
+const isUpperCase = char => (char.charCodeAt(0) >= 65 && char.charCodeAt(0) <= 90);
+
 class Chessgame {
-	constructor(FEN = START_POSITION) {
-		// init board
-		this.board = [
-			['r','n','b','q','k','b','n','r'],
-			['p','p','p','p','p','p','p','p'],
-			['','','','','','','',''],
-			['','','','','','','',''],
-			['','','','','','','',''],
-			['','','','','','','',''],
-			['P','P','P','P','P','P','P','P'],
-			['R','N','B','Q','K','B','N','R']
-		];
 
-		this.possibleMoves = [];
+	board = [
+		['r','n','b','q','k','b','n','r'],
+		['p','p','p','p','p','p','p','p'],
+		['','','','','','','',''],
+		['','','','','','','',''],
+		['','','','','','','',''],
+		['','','','','','','',''],
+		['P','P','P','P','P','P','P','P'],
+		['R','N','B','Q','K','B','N','R']
+	];
 
-		this.loadFEN(FEN);
+	candidates = {
+		white: [],
+		black: []
+	};
 
-		// current turn, true - white, false - black
-		// this.turn = true;
+	// current turn, true - white, false - black
+	turn = true;
 
-		// // are castles possible
-		// this.castle_k = true;
-		// this.castle_q = true;
-		// this.castle_K = true;
-		// this.castle_Q = true;
+	// are castles possible
+	castle_k = true;
+	castle_q = true;
+	castle_K = true;
+	castle_Q = true;
 
-		// // halfmoves since last taking or pawn's move
-		// this.halfmoves = 0;
+	// halfmoves since last taking or pawn's move
+	halfmoves = 0;
 
-		// // move number
-		// this.moves = 1;
+	// move number
+	moves = 1;
 
-		// // enpassant field
-		// this.enpassant = '-';
+	// enpassant field
+	enpassant = '-';
+
+	constructor(FEN = null) {
+		if(FEN) this.loadFEN(FEN);
+		this.calculateCandidates();
+		this.verifyCandidates();
 	}
 
-	makeMove(from, to) {
-		console.log(`${from}-${to}`)
-		console.log(this.getFieldByName(from));
-		// is white or black or empty
-		// from = from.toUpperCase();
-		// to = to.toUpperCase();
-		// let piece = this.board[8-(+(from[1]))][from.charCodeAt(0)-65];
-		// if(piece === '') return false;
+	makeMove(move) {
+		if (this.candidates[this.turn ? 'white' : 'black'].indexOf(move) === -1) return false;
 
-		// check type of piece
+		// castles
+		if(move === 'O-O') {
+			if(this.turn) {
+				this.movePiece('Ke1-g1');
+				this.movePiece('Rh1-f1');
+				this.castle_K = false;
+				this.castle_Q = false;
+			} else {
+				this.movePiece('Ke8-g8');
+				this.movePiece('Rh8-f8');
+				this.castle_k = false;
+				this.castle_q = false;
+			}
+		}
+		if(move === 'O-O-O') {
+			if(this.turn) {
+				this.movePiece('Ke1-c1');
+				this.movePiece('Ra1-d1');
+				this.castle_K = false;
+				this.castle_Q = false;
+			} else {
+				this.movePiece('Ke8-c8');
+				this.movePiece('Ra8-d8');
+				this.castle_k = false;
+				this.castle_q = false;
+			}
+		}
 
-		// is move in the list of moves of this kind of piece
+		const from = move.split('-');
 
-		// is promotion
+		if(from === 'Ra1') this.castle_Q = false;
+		if(from === 'Rh1') this.castle_K = false;
+		if(from === 'Ra8') this.castle_q = false;
+		if(from === 'Rf8') this.castle_k = false;
+		if(move[0] === 'K' && this.turn) {
+			this.castle_K = false;
+			this.castle_Q = false;
+		}
+		if(move[0] === 'K' && !this.turn) {
+			this.castle_k = false;
+			this.castle_q = false;
+		}
+		
+		const [p, f, t] = this.moveToArray(move);
 
+		// enpassants
+		if(p === 'p' && f[1] === '7' && t[1] === '5') {
+			this.enpassant = `${f[0]}5`;
+		}else if(p === 'P' && f[1] === '2' && t[1] === '4') {
+			this.enpassant = `${f[0]}3`;
+		} else {
+			this.enpassant = '-';
+		}
+		
+		// count halmoves
+		if(p === 'p' || p === 'P' || this.getFieldByName(t) !== '') {
+			this.halfmoves = 0;
+		} else {
+			this.halfmoves++;
+		}
 
+		// count moves
+		if(!this.turn) this.moves++;
 
+		this.movePiece(move);
+		this.turn = !this.turn;
 		
 
-		// this.calculatePossibleMoves();
+		this.calculateCandidates();
+		this.verifyCandidates();
 
 		return true;
 	}
 
-	calculatePossibleMoves() {
+	moveToArray(move) {
+		let [from, to] = move.split('-');
+		
+		if(isUpperCase(from[0])) from = from.substring(1);
+		const piece = this.getFieldByName(from);
+
+		return [piece, from, to];
+	}
+
+	calculateCandidates() {
 		const candidates = {
 			white: [],
 			black: []
@@ -69,7 +138,6 @@ class Chessgame {
 
 		this.board.map((row, rowId) => {
 			row.map((el, colId) => {
-				// if(this.turn != this.isWhite(el)) return;
 				if(el === '') return;
 				
 				let originalPosition = [rowId, colId];
@@ -124,11 +192,11 @@ class Chessgame {
 
 						// [1, 1] - take
 						dest = this.sumVectors(originalPosition, [1, 1]);
-						if(this.isOnBoard(dest) && this.isWhite(this.getFieldByVector(dest))) addCand();
+						if(this.isOnBoard(dest) && (this.isWhite(this.getFieldByVector(dest)) || (this.getNameByCoords(dest)) === this.enpassant)) addCand();
 
 						// [1, -1] - take
 						dest = this.sumVectors(originalPosition, [1, -1]);
-						if(this.isOnBoard(dest) && this.isWhite(this.getFieldByVector(dest))) addCand();
+						if(this.isOnBoard(dest) && (this.isWhite(this.getFieldByVector(dest)) || (this.getNameByCoords(dest)) === this.enpassant)) addCand();
 						
 						break;
 
@@ -148,11 +216,13 @@ class Chessgame {
 
 						// [-1, 1] - take
 						dest = this.sumVectors(originalPosition, [-1, 1]);
-						if(this.isOnBoard(dest) && this.isBlack(this.getFieldByVector(dest))) addCand();
+						if(this.isOnBoard(dest) && (this.isBlack(this.getFieldByVector(dest)) || (this.getNameByCoords(dest)) === this.enpassant)) addCand();
 
 						// [-1, -1] - take
 						dest = this.sumVectors(originalPosition, [-1, -1]);
-						if(this.isOnBoard(dest) && this.isBlack(this.getFieldByVector(dest))) addCand();
+						if(this.isOnBoard(dest) && (this.isBlack(this.getFieldByVector(dest)) || (this.getNameByCoords(dest)) === this.enpassant)) addCand();
+
+
 						
 						break;
 				
@@ -193,6 +263,8 @@ class Chessgame {
 						for (let i = 1; i < 8; i++) {
 							if(!checkMove([-i, -i])) break;
 						}
+
+						break;
 
 					case 'n':
 					case 'N':
@@ -263,7 +335,8 @@ class Chessgame {
 			) {
 				const dealbreaks = candidates['white'].map(cand => {
 					if(	cand.split('-')[1] === 'f8' ||
-						cand.split('-')[1] === 'g8'
+						cand.split('-')[1] === 'g8' ||
+						cand.split('-')[1] === 'e8'
 					) {
 						return cand;
 					}
@@ -282,7 +355,8 @@ class Chessgame {
 				const dealbreaks = candidates.white.map(cand => {
 					if(	cand.split('-')[1] === 'b8' ||
 						cand.split('-')[1] === 'c8' ||
-						cand.split('-')[1] === 'd8' 
+						cand.split('-')[1] === 'd8' ||
+						cand.split('-')[1] === 'e8' 
 					) {
 						return cand;
 					}
@@ -299,7 +373,8 @@ class Chessgame {
 			) {
 				const dealbreaks = candidates.black.map(cand => {
 					if(	cand.split('-')[1] === 'f1' ||
-						cand.split('-')[1] === 'g1'
+						cand.split('-')[1] === 'g1' ||
+						cand.split('-')[1] === 'e1'
 					) {
 						return cand;
 					}
@@ -318,7 +393,8 @@ class Chessgame {
 				const dealbreaks = candidates.black.map(cand => {
 					if(	cand.split('-')[1] === 'b1' ||
 						cand.split('-')[1] === 'c1' ||
-						cand.split('-')[1] === 'd1' 
+						cand.split('-')[1] === 'd1' ||
+						cand.split('-')[1] === 'e1'
 					) {
 						return cand;
 					}
@@ -329,16 +405,68 @@ class Chessgame {
 				}
 		}
 
-		console.log(candidates);
+		this.candidates = candidates;
+	}
 
-		// make a copy of the board
+	// exclude moves that leads to check
+	verifyCandidates() {
+		let cands = [...this.candidates[this.turn ? 'white' : 'black']];
+		let originalBoard = this.board.map(arr => arr.slice());
+		let originalCandidates = JSON.stringify(this.candidates);
 		
-		// is check - revert
+		console.log('----------------------------------------------------');
+		cands.map(mv => {
+			this.movePiece(mv);
 
+			this.calculateCandidates();
+			if(this.isCheck()) {
+				this.candidates = JSON.parse(originalCandidates);
+				this.candidates[this.turn ? 'white' : 'black'].splice(
+					this.candidates[this.turn ? 'white' : 'black'].indexOf(mv), 
+					1
+				);
+				originalCandidates = JSON.stringify(this.candidates);
+			}
+
+			this.board = originalBoard.map(arr => arr.slice());
+			this.candidates = JSON.parse(originalCandidates);
+		});
+	}
+
+	movePiece(move) {
+		let [piece, from, to] = this.moveToArray(move);
+
+		const fromCoords = this.getCoordsByName(from);
+		const toCoords = this.getCoordsByName(to);
+		this.board[fromCoords[0]][fromCoords[1]] = '';
+		this.board[toCoords[0]][toCoords[1]] = piece;
 	}
 
 	isCheck() {
+		const moves = this.candidates[!this.turn ? 'white' : 'black'];
+		let kingPos = '';
+		this.board.forEach((row, rowid) => {
+			row.forEach((col, colid) => {
+				if(col === (this.turn ? 'K' : 'k')) kingPos = this.getNameByCoords([rowid, colid]);
+			});
+		});
+		
+		const checking = moves.filter(move => move.split('-')[1] === kingPos);
 
+		if(checking.length === 0) return false;
+		return true;
+	}
+
+	isMate() {
+		if(!this.isCheck()) return false;
+
+		const moves = this.candidates[this.turn ? 'white' : 'black'];
+
+		moves.map(mv => {
+			const boardCopy = [...this.board];
+
+			this.movePiece(mv);
+		});
 	}
 
 	getFEN() {
@@ -347,19 +475,19 @@ class Chessgame {
 		this.board.map((row, rowId) => {
 			let blanks = 0;
 
-			for (let i = 0; i < row.length; i++) {
-				if(row[i] != '') {
-					fen += row[i];
-					continue;
-				}
-
-				while (i < row.length && row[i] === '') {
+			row.map(field => {
+				if(field !== '') {
+					if(blanks > 0) {
+						fen += blanks;
+						blanks = 0;
+					}
+					fen += field;
+				} else {
 					blanks++;
-					i++;
 				}
-				fen += blanks;
-			}
+			})
 
+			if(blanks > 0) fen += blanks;
 			if(rowId < this.board.length-1) fen += '/';
 		});
 
