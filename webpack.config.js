@@ -7,6 +7,7 @@ module.exports = {
     filename: "index.js",
     library: "chessgame-lib-js",
     libraryTarget: "umd",
+    globalObject: 'this'
   },
   module: {
     rules: [

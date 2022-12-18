@@ -1,4 +1,4 @@
-const START_POSITION = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+export const START_POSITION = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 const isUpperCase = char => (char.charCodeAt(0) >= 65 && char.charCodeAt(0) <= 90);
 
@@ -38,13 +38,31 @@ class Chessgame {
 	// enpassant field
 	enpassant = '-';
 
+	// pawn waiting for promotion
+	promotion = '';
+
 	constructor(FEN = null) {
 		if(FEN) this.loadFEN(FEN);
 		this.calculateCandidates();
 		this.verifyCandidates();
 	}
 
+	promote(piece) {
+		if(this.turn) {
+			piece = piece.toLowerCase();
+		} else {
+			piece = piece.toUpperCase();
+		}
+		const [row, col] = this.getCoordsByName(this.promotion);
+		this.board[row][col] = piece;
+	}
+
 	makeMove(move) {
+		if(this.promotion !== '') return false;
+		// parse castles
+		if(['Ke1-g1', 'Ke8-g8'].includes(move)) move = 'O-O';
+		if(['Ke1-c1', 'Ke8-c8'].includes(move)) move = 'O-O-O';
+
 		if (this.candidates[this.turn ? 'white' : 'black'].indexOf(move) === -1) return false;
 
 		// castles
@@ -90,15 +108,23 @@ class Chessgame {
 			this.castle_q = false;
 		}
 		
+		console.log(move);
 		const [p, f, t] = this.moveToArray(move);
+		// console.log(p, f, t);
 
 		// enpassants
+		const prevEnpassant = this.enpassant;
 		if(p === 'p' && f[1] === '7' && t[1] === '5') {
-			this.enpassant = `${f[0]}5`;
+			this.enpassant = `${f[0]}6`;
 		}else if(p === 'P' && f[1] === '2' && t[1] === '4') {
 			this.enpassant = `${f[0]}3`;
 		} else {
 			this.enpassant = '-';
+		}
+
+		// promotion
+		if((p === 'p' && t[1] === '1') || (p === 'P' && t[1] === '8')) {
+			this.promotion = t;
 		}
 		
 		// count halmoves
@@ -112,6 +138,11 @@ class Chessgame {
 		if(!this.turn) this.moves++;
 
 		this.movePiece(move);
+		if(t === prevEnpassant) {
+			let from = this.getCoordsByName(f);
+			let to = this.getCoordsByName(t);
+			this.board[from[0]][to[1]] = '';
+		}
 		this.turn = !this.turn;
 		
 
@@ -122,10 +153,13 @@ class Chessgame {
 	}
 
 	moveToArray(move) {
+		// console.log(move);
 		let [from, to] = move.split('-');
+		// console.log(from, to)
 		
 		if(isUpperCase(from[0])) from = from.substring(1);
 		const piece = this.getFieldByName(from);
+		// console.log(piece, from, to);
 
 		return [piece, from, to];
 	}
@@ -272,6 +306,10 @@ class Chessgame {
 						checkMove([2, -1]);
 						checkMove([-2, 1]);
 						checkMove([-2, -1]);
+						checkMove([1, 2]);
+						checkMove([1, -2]);
+						checkMove([-1, 2]);
+						checkMove([-1, -2]);
 						break;
 
 					case 'q':
@@ -414,7 +452,7 @@ class Chessgame {
 		let originalBoard = this.board.map(arr => arr.slice());
 		let originalCandidates = JSON.stringify(this.candidates);
 		
-		console.log('----------------------------------------------------');
+		// console.log('----------------------------------------------------');
 		cands.map(mv => {
 			this.movePiece(mv);
 
@@ -443,7 +481,7 @@ class Chessgame {
 	}
 
 	isCheck() {
-		const moves = this.candidates[!this.turn ? 'white' : 'black'];
+		const moves = [...this.candidates[!this.turn ? 'white' : 'black']];
 		let kingPos = '';
 		this.board.forEach((row, rowid) => {
 			row.forEach((col, colid) => {
@@ -458,15 +496,7 @@ class Chessgame {
 	}
 
 	isMate() {
-		if(!this.isCheck()) return false;
-
-		const moves = this.candidates[this.turn ? 'white' : 'black'];
-
-		moves.map(mv => {
-			const boardCopy = [...this.board];
-
-			this.movePiece(mv);
-		});
+		return this.isCheck() && this.candidates[this.turn ? 'white' : 'black'].length === 0;
 	}
 
 	getFEN() {
@@ -581,6 +611,7 @@ class Chessgame {
 	}
 
 	getFieldByName(name) {
+		// console.log(name);
 		const [row, col] = this.getCoordsByName(name);
 		return this.board[row][col];
 	}
