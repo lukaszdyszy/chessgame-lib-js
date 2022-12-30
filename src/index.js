@@ -452,8 +452,8 @@ class Chessgame {
 		let originalBoard = this.board.map(arr => arr.slice());
 		let originalCandidates = JSON.stringify(this.candidates);
 		
-		// console.log('----------------------------------------------------');
 		cands.map(mv => {
+			console.log(mv)
 			this.movePiece(mv);
 
 			this.calculateCandidates();
@@ -611,8 +611,8 @@ class Chessgame {
 	}
 
 	getFieldByName(name) {
-		// console.log(name);
 		const [row, col] = this.getCoordsByName(name);
+		if(!this.isOnBoard([row, col])) return '';
 		return this.board[row][col];
 	}
 
@@ -621,8 +621,12 @@ class Chessgame {
 	}
 
 	getCoordsByName(name) {
-		name = name.toLowerCase();
-		return [8-(+name[1]), name.charCodeAt(0) - 97];
+		if(name.length === 2) {
+			name = name.toLowerCase();
+			return [8-(+name[1]), name.charCodeAt(0) - 97];
+		} else {
+			return [-1, -1];
+		}
 	}
 
 	getFieldByVector(vector) {

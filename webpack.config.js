@@ -18,6 +18,5 @@ module.exports = {
       },
     ],
   },
-  mode: "development",
-  watch: true,
+  mode: "development"
 }
