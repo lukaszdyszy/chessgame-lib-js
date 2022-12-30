@@ -42,9 +42,9 @@ class Chessgame {
 	promotion = '';
 
 	constructor(FEN = null) {
-		// if(FEN) this.loadFEN(FEN);
+		if(FEN) this.loadFEN(FEN);
 		this.calculateCandidates();
-		// this.verifyCandidates();
+		this.verifyCandidates();
 	}
 
 	promote(piece) {
@@ -454,7 +454,6 @@ class Chessgame {
 
 	movePiece(move) {
 		let [piece, from, to] = this.moveToArray(move);
-		console.log(piece);
 
 		const fromCoords = this.getCoordsByName(from);
 		const toCoords = this.getCoordsByName(to);
