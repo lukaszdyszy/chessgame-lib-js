@@ -42,75 +42,61 @@ class Chessgame {
 	promotion = '';
 
 	constructor(FEN = null) {
-		if(FEN) this.loadFEN(FEN);
+		// if(FEN) this.loadFEN(FEN);
 		this.calculateCandidates();
-		this.verifyCandidates();
+		// this.verifyCandidates();
 	}
 
 	promote(piece) {
-		if(this.turn) {
-			piece = piece.toLowerCase();
-		} else {
-			piece = piece.toUpperCase();
+		if(['Q', 'R', 'B', 'N', 'q', 'r', 'b', 'n'].includes(piece)) {
+			piece = this.turn ? piece.toUpperCase() : piece.toLowerCase();
+			const [row, col] = this.getCoordsByName(this.promotion);
+			this.board[row][col] = piece;
+			this.promotion = '';
 		}
-		const [row, col] = this.getCoordsByName(this.promotion);
-		this.board[row][col] = piece;
 	}
 
-	makeMove(move) {
+	makeMove(move, promoteTo = null) {
 		if(this.promotion !== '') return false;
-		// parse castles
-		if(['Ke1-g1', 'Ke8-g8'].includes(move)) move = 'O-O';
-		if(['Ke1-c1', 'Ke8-c8'].includes(move)) move = 'O-O-O';
 
 		if (this.candidates[this.turn ? 'white' : 'black'].indexOf(move) === -1) return false;
 
+		const [p, f, t] = this.moveToArray(move);
+
+		let moveName = `${p.toUpperCase()}${f}-${t}`;
+
 		// castles
-		if(move === 'O-O') {
-			if(this.turn) {
-				this.movePiece('Ke1-g1');
-				this.movePiece('Rh1-f1');
-				this.castle_K = false;
-				this.castle_Q = false;
-			} else {
-				this.movePiece('Ke8-g8');
-				this.movePiece('Rh8-f8');
-				this.castle_k = false;
-				this.castle_q = false;
-			}
-		}
-		if(move === 'O-O-O') {
-			if(this.turn) {
-				this.movePiece('Ke1-c1');
-				this.movePiece('Ra1-d1');
-				this.castle_K = false;
-				this.castle_Q = false;
-			} else {
-				this.movePiece('Ke8-c8');
-				this.movePiece('Ra8-d8');
-				this.castle_k = false;
-				this.castle_q = false;
-			}
+		if(move === 'e1-g1') {
+			this.movePiece(move);
+			this.movePiece('h1-f1');
+		} else if(move === 'e1-c1') {
+			this.movePiece(move);
+			this.movePiece('a1-d1');
+		} else if(move === 'e8-g8') {
+			this.movePiece(move);
+			this.movePiece('h8-f8');
+		} else if(move === 'e8-c8') {
+			this.movePiece(move);
+			this.movePiece('a8-d8');
+		} else {
+			this.movePiece(move);
 		}
 
-		const from = move.split('-');
-
-		if(from === 'Ra1') this.castle_Q = false;
-		if(from === 'Rh1') this.castle_K = false;
-		if(from === 'Ra8') this.castle_q = false;
-		if(from === 'Rf8') this.castle_k = false;
-		if(move[0] === 'K' && this.turn) {
+		if(f === 'e1') {
 			this.castle_K = false;
 			this.castle_Q = false;
-		}
-		if(move[0] === 'K' && !this.turn) {
+		} else if(f === 'a1') {
+			this.castle_Q = false;
+		} else if(f === 'h1') {
+			this.castle_K = false;
+		} else if(f === 'e8') {
 			this.castle_k = false;
 			this.castle_q = false;
+		} else if(f === 'a8') {
+			this.castle_q = false;
+		} else if(f === 'h8') {
+			this.castle_k = false;
 		}
-		
-		console.log(move);
-		const [p, f, t] = this.moveToArray(move);
-		// console.log(p, f, t);
 
 		// enpassants
 		const prevEnpassant = this.enpassant;
@@ -125,6 +111,8 @@ class Chessgame {
 		// promotion
 		if((p === 'p' && t[1] === '1') || (p === 'P' && t[1] === '8')) {
 			this.promotion = t;
+
+			if(promoteTo) this.promote(promoteTo);
 		}
 		
 		// count halmoves
@@ -136,30 +124,26 @@ class Chessgame {
 
 		// count moves
 		if(!this.turn) this.moves++;
-
-		this.movePiece(move);
+		
 		if(t === prevEnpassant) {
 			let from = this.getCoordsByName(f);
 			let to = this.getCoordsByName(t);
 			this.board[from[0]][to[1]] = '';
 		}
+
 		this.turn = !this.turn;
-		
 
 		this.calculateCandidates();
 		this.verifyCandidates();
 
-		return true;
+		return moveName;
 	}
 
 	moveToArray(move) {
-		// console.log(move);
 		let [from, to] = move.split('-');
-		// console.log(from, to)
 		
 		if(isUpperCase(from[0])) from = from.substring(1);
 		const piece = this.getFieldByName(from);
-		// console.log(piece, from, to);
 
 		return [piece, from, to];
 	}
@@ -182,11 +166,9 @@ class Chessgame {
 
 				const addCand = () => {
 					if(this.isOnBoard(dest)) {
-						candidates[W ? 'white' : 'black'].push(this.moveToString(
-							el, 
-							this.getNameByCoords(originalPosition),
-							this.getNameByCoords(dest)
-						));
+						candidates[W ? 'white' : 'black'].push(
+							`${this.getNameByCoords(originalPosition)}-${this.getNameByCoords(dest)}`
+						);
 					}
 				}
 
@@ -381,7 +363,7 @@ class Chessgame {
 				}).filter(Boolean);
 
 				if(dealbreaks.length === 0) {
-					candidates.black.push('O-O');
+					candidates.black.push('e8-g8');
 				}
 		}
 
@@ -401,7 +383,7 @@ class Chessgame {
 				}).filter(Boolean);
 
 				if(dealbreaks.length === 0) {
-					candidates.black.push('O-O-O');
+					candidates.black.push('e8-c8');
 				}
 		}
 
@@ -419,7 +401,7 @@ class Chessgame {
 				}).filter(Boolean);
 
 				if(dealbreaks.length === 0) {
-					candidates.white.push('O-O');
+					candidates.white.push('e1-g1');
 				}
 		}
 
@@ -439,7 +421,7 @@ class Chessgame {
 				}).filter(Boolean);
 
 				if(dealbreaks.length === 0) {
-					candidates.white.push('O-O-O');
+					candidates.white.push('e1-c1');
 				}
 		}
 
@@ -453,7 +435,6 @@ class Chessgame {
 		let originalCandidates = JSON.stringify(this.candidates);
 		
 		cands.map(mv => {
-			console.log(mv)
 			this.movePiece(mv);
 
 			this.calculateCandidates();
@@ -473,6 +454,7 @@ class Chessgame {
 
 	movePiece(move) {
 		let [piece, from, to] = this.moveToArray(move);
+		console.log(piece);
 
 		const fromCoords = this.getCoordsByName(from);
 		const toCoords = this.getCoordsByName(to);
@@ -630,6 +612,7 @@ class Chessgame {
 	}
 
 	getFieldByVector(vector) {
+		if(!this.isOnBoard(vector)) return '';
 		return this.board[vector[0]][vector[1]];
 	}
 
@@ -639,7 +622,8 @@ class Chessgame {
 		});
 	}
 
-	moveToString(piece, from, to) {
+	moveToString(from, to) {
+		piece = this.getFieldByName(from);
 		return `${(piece.toUpperCase() != 'P') ? piece.toUpperCase() : ''}${from}-${to}`;
 	}
 }
